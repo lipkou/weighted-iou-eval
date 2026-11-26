@@ -1,0 +1,29 @@
+# Weighted IoU evaluation settings.
+# Class names are normalized: "road sign" and "road_sign" are the same key.
+
+[matching]
+# Objects are matched regardless of class (Hungarian, max total IoU).
+# A pair with IoU below this is not a match: GT -> missed, prediction -> FP.
+min_iou = 0.1
+
+[scoring]
+# Weight of an object inside its class: "area" (GT area) or "sqrt_area".
+object_weight = "area"
+# Cost of false positives: their weight (same function, predicted area)
+# is added to the class denominator times this factor.
+# 1.0 = an FP costs as much as a missed object of the same size.
+fp_penalty = 1.0
+# IoU needed for a true positive in precision/recall, unless a class sets tp_iou.
+default_tp_iou = 0.5
+# Weight for classes not listed below. Leave unset to fail on unknown classes.
+# default_class_weight = 1.0
+
+[classes.car]
+weight = 1.0
+
+[classes.road_sign]
+weight = 0.8
+
+[classes.road_barrier]
+weight = 0.5
+# tp_iou = 0.3
