@@ -1,0 +1,10 @@
+[project]
+name = "weighted-iou-eval"
+version = "0.1.0"
+description = "Per-class, area-weighted IoU evaluation of object annotations"
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.24", "scipy>=1.10", "Pillow>=10.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
