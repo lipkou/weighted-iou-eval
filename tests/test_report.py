@@ -16,9 +16,9 @@ CONFIG = str(ROOT / "config.toml")
 def test_cli_text(capsys):
     assert main([GT, PRED, "--config", CONFIG]) == 0
     out = capsys.readouterr().out
-    assert "ОЦЕНКА ФАЙЛА: 56.0%" in out
+    assert "ОЦЕНКА ФАЙЛА: 57.7%" in out
     assert "пропущен" in out
-    assert "pred 0.5  road_sign  площадь 168  — нет объекта в эталоне" in out
+    assert "pred 0.5  road_sign  площадь 143  — нет объекта в эталоне" in out
     assert "Атрибуты кадра: РАСХОЖДЕНИЕ" in out
     assert "weather: эталон 'clear', предсказание 'fog'" in out
 
@@ -26,7 +26,7 @@ def test_cli_text(capsys):
 def test_cli_json(capsys):
     assert main([GT, PRED, "--config", CONFIG, "--json"]) == 0
     data = json.loads(capsys.readouterr().out)
-    assert round(data["score"] * 100, 4) == 55.9912
+    assert round(data["score"] * 100, 4) == 57.7308
     assert data["attributes"]["agreement"] == 1 / 3
 
 

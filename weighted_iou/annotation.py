@@ -18,12 +18,13 @@ Geometry source, in order of priority:
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image
 
 
 def normalize_class(name: str) -> str:
@@ -53,24 +54,44 @@ class Annotation:
     objects: list[AnnotatedObject]
 
 
+def _fill_ring(mask: np.ndarray, ring) -> None:
+    """Even-odd scanline fill: pixel (i, j) is set if its center (i+.5, j+.5) is inside."""
+    height, width = mask.shape
+    pts = np.floor(np.asarray(ring, dtype=np.float64))
+    x0, y0 = pts[:, 0], pts[:, 1]
+    x1, y1 = np.roll(x0, -1), np.roll(y0, -1)
+    j_from = max(0, int(pts[:, 1].min()))
+    j_to = min(height - 1, int(pts[:, 1].max()))
+    for j in range(j_from, j_to + 1):
+        yc = j + 0.5
+        cross = ((y0 <= yc) & (y1 > yc)) | ((y1 <= yc) & (y0 > yc))
+        xs = np.sort(x0[cross] + (yc - y0[cross]) * (x1[cross] - x0[cross]) / (y1[cross] - y0[cross]))
+        for a, b in zip(xs[0::2], xs[1::2]):
+            # a <= i + 0.5 < b
+            i_from = max(0, math.ceil(a - 0.5))
+            i_to = min(width, math.ceil(b - 0.5))
+            if i_to > i_from:
+                mask[j, i_from:i_to] = True
+
+
 def rasterize(geom: dict, width: int, height: int) -> np.ndarray:
     """Polygon rings (united) or, without a path, the bounding box.
 
-    Uses PIL's fill convention: polygon edges and the x2/y2 edge of the box
-    are included. Ground-truth masks come from the annotation tool and may
-    round differently; on objects of ~100 px this alone moves IoU by a few
-    points.
+    Same rule as the annotation tool: coordinates are floored to the pixel
+    grid, then a pixel belongs to the shape if its center is inside. For a
+    box this is floor(x1) <= i < floor(x2). Derived from the ground truth,
+    where every object has both a JSON bbox and a mask: the rule reproduces
+    the bBox masks pixel for pixel and all 32 bbox edges of all 8 objects.
     """
-    img = Image.new("L", (width, height), 0)
-    draw = ImageDraw.Draw(img)
+    mask = np.zeros((height, width), dtype=bool)
     rings = geom.get("path")
-    if rings:
-        for ring in rings:
-            if len(ring) >= 3:
-                draw.polygon([tuple(p) for p in ring], fill=1)
-    else:
-        draw.rectangle([geom["x1"], geom["y1"], geom["x2"], geom["y2"]], fill=1)
-    return np.array(img, dtype=bool)
+    if not rings:
+        x1, y1, x2, y2 = geom["x1"], geom["y1"], geom["x2"], geom["y2"]
+        rings = [[[x1, y1], [x2, y1], [x2, y2], [x1, y2]]]
+    for ring in rings:
+        if len(ring) >= 3:
+            _fill_ring(mask, ring)
+    return mask
 
 
 def _mask_dir(json_path: Path, frame: int) -> Path:

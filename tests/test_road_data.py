@@ -1,8 +1,8 @@
 """Regression test on road_data.
 
-Expected values were computed by an independent one-off script during the
-metric design (greedy matching, PIL rasterization, plain Python sums), before
-this package existed. The package must reproduce them.
+Expected values were computed by an independent one-off script (greedy
+matching, brute-force point-in-polygon on pixel centers with floored
+vertices, plain sums), not by this package. The package must reproduce them.
 """
 
 from dataclasses import replace
@@ -19,19 +19,19 @@ DATA = ROOT / "road_data"
 
 # GT nm -> (pred nm, IoU)
 EXPECTED_MATCHES = {
-    "0.1": ("0.3", 0.855774), "0.2": ("0.9", 0.753296), "0.3": ("0.2", 0.697306),
-    "0.5": ("0.7", 0.399312), "0.6": ("0.6", 0.666667),
-    "0.7": ("0.8", 0.493054), "0.8": ("0.1", 0.397589),
+    "0.1": ("0.3", 0.869971), "0.2": ("0.9", 0.729730), "0.3": ("0.2", 0.735786),
+    "0.5": ("0.7", 0.397024), "0.6": ("0.6", 0.808989),
+    "0.7": ("0.8", 0.508884), "0.8": ("0.1", 0.434938),
 }
 
 # (object_weight, fp_penalty) -> (car, road_sign, road_barrier, file), in %
 EXPECTED_SCORES = {
-    ("area", 0.0): (78.5685, 42.4376, 43.5759, 58.3942),
-    ("area", 0.5): (78.5685, 38.6773, 43.5759, 57.0862),
-    ("area", 1.0): (78.5685, 35.5292, 43.5759, 55.9912),
-    ("sqrt_area", 0.0): (71.0789, 46.4375, 44.0491, 56.6319),
-    ("sqrt_area", 0.5): (71.0789, 39.5132, 44.0491, 54.2235),
-    ("sqrt_area", 1.0): (71.0789, 34.3860, 44.0491, 52.4401),
+    ("area", 0.0): (79.6531, 43.5646, 46.4504, 59.8826),
+    ("area", 0.5): (79.6531, 40.2349, 46.4504, 58.7244),
+    ("area", 1.0): (79.6531, 37.3781, 46.4504, 57.7308),
+    ("sqrt_area", 0.0): (72.0036, 49.7280, 46.8169, 58.7802),
+    ("sqrt_area", 0.5): (72.0036, 42.8071, 46.8169, 56.3729),
+    ("sqrt_area", 1.0): (72.0036, 37.5773, 46.8169, 54.5539),
 }
 
 
@@ -78,7 +78,8 @@ def test_precision_recall_default_threshold(gt, pred, cfg):
     assert (c["car"].precision, c["car"].recall) == (1.0, 0.75)
     assert (c["road_sign"].tp, c["road_sign"].n_pred, c["road_sign"].n_gt) == (1, 3, 2)
     assert c["road_sign"].recall == 0.5
-    assert (c["road_barrier"].precision, c["road_barrier"].recall) == (0.0, 0.0)
+    # GT 0.7 <-> pred 0.8 has IoU 0.509: just above the threshold
+    assert (c["road_barrier"].precision, c["road_barrier"].recall) == (0.5, 0.5)
 
 
 def test_per_class_tp_threshold(gt, pred, cfg):
@@ -88,7 +89,7 @@ def test_per_class_tp_threshold(gt, pred, cfg):
     b = res.classes["road_barrier"]
     assert (b.precision, b.recall) == (1.0, 1.0)
     # the threshold changes only the counts, never the score
-    assert b.score * 100 == pytest.approx(43.5759, abs=1e-4)
+    assert b.score * 100 == pytest.approx(46.4504, abs=1e-4)
 
 
 def test_attributes(gt, pred, cfg):
