@@ -12,7 +12,6 @@ python -m venv .venv
 .venv/Scripts/python -m pip install -r requirements.txt
 
 .venv/Scripts/python -m weighted_iou road_data/ground_truth/road.jpg.json road_data/annotated/road.jpg.json
-.venv/Scripts/python -m weighted_iou GT.json PRED.json --config config.toml --json
 .venv/Scripts/python -m pytest
 ```
 
@@ -23,7 +22,6 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 
 .venv/bin/python -m weighted_iou road_data/ground_truth/road.jpg.json road_data/annotated/road.jpg.json
-.venv/bin/python -m weighted_iou GT.json PRED.json --config config.toml --json
 .venv/bin/python -m pytest
 ```
 
